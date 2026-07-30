@@ -1,17 +1,43 @@
-export async function streamChatAPI(messages, systemPrompt, customPrompt, onChunk) {
-    const response = await fetch('/api/chat', {
+const API_BASE_URL = 'http://localhost:8000/api';
+
+// --- Chat History API Functions ---
+
+export async function fetchSessions() {
+    const res = await fetch(`${API_BASE_URL}/chat/sessions`);
+    if (!res.ok) throw new Error('Failed to fetch chat sessions');
+    return res.json();
+}
+
+export async function fetchSessionMessages(sessionId) {
+    const res = await fetch(`${API_BASE_URL}/chat/sessions/${sessionId}/messages`);
+    if (!res.ok) throw new Error('Failed to fetch session messages');
+    return res.json();
+}
+
+export async function createSession(systemPrompt, title = 'New Chat') {
+    const res = await fetch(`${API_BASE_URL}/chat/sessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ system_prompt: systemPrompt, title })
+    });
+    if (!res.ok) throw new Error('Failed to create session');
+    return res.json();
+}
+
+export async function streamChatAPI(messages, systemPrompt, customPrompt, onChunk, sessionId, onSessionCreated) {
+    const response = await fetch(`${API_BASE_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             messages,
             system_prompt: systemPrompt,
-            custom_system_prompt: customPrompt || null,
-            temperature: 0.7
+            custom_system_prompt: customPrompt,
+            session_id: sessionId
         })
     });
 
     if (!response.ok) {
-        throw new Error(`Chat HTTP Error: ${response.status}`);
+        throw new Error(`Server error: ${response.statusText}`);
     }
 
     const reader = response.body.getReader();
@@ -19,40 +45,46 @@ export async function streamChatAPI(messages, systemPrompt, customPrompt, onChun
     let buffer = '';
 
     while (true) {
-        const { value, done } = await reader.read();
+        const { done, value } = await reader.read();
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n\n');
-        buffer = lines.pop() || '';
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
 
         for (const line of lines) {
             if (line.startsWith('data: ')) {
-                const dataStr = line.replace('data: ', '').trim();
-                if (dataStr === '[DONE]') return;
+                const data = line.slice(6).trim();
+                if (data === '[DONE]') return;
                 try {
-                    const parsed = JSON.parse(dataStr);
-                    if (parsed.content) onChunk(parsed.content);
-                    if (parsed.error) throw new Error(parsed.error);
+                    const parsed = JSON.parse(data);
+                    if (parsed.session_id && onSessionCreated) {
+                        onSessionCreated(parsed.session_id);
+                    }
+                    if (parsed.content) {
+                        onChunk(parsed.content);
+                    }
                 } catch (e) {
-                    console.error("SSE parse error", e);
+                    console.error("JSON parse error on stream chunk:", e);
                 }
             }
         }
     }
 }
 
+// --- Invoice Extraction API Function (This was the missing piece!) ---
+
 export async function extractInvoiceAPI(rawText) {
-    const response = await fetch('/api/extract', {
+    const response = await fetch(`${API_BASE_URL}/extract`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ raw_text: rawText })
     });
 
     if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Extraction request failed');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Server error: ${response.statusText}`);
     }
 
-    return await response.json();
+    return response.json();
 }

@@ -11,6 +11,11 @@ class ChatRequest(BaseModel):
     system_prompt: Optional[str] = "AI Tech Mentor"
     custom_system_prompt: Optional[str] = None
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
+    session_id: Optional[str] = None  # Added for Supabase linking
+
+class CreateSessionRequest(BaseModel):
+    system_prompt: str = "AI Tech Mentor"
+    title: Optional[str] = "New Chat"
 
 # Invoice Extraction Schemas
 class LineItem(BaseModel):

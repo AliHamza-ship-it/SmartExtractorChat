@@ -19,13 +19,15 @@ class LLMService:
             }
         )
 
-    async def stream_chat(self, messages, system_prompt_key, custom_prompt, temperature):
+    async def stream_chat(self, messages, system_prompt_key: str = "AI Tech Mentor", custom_prompt: str = None, temperature: float = 0.7):
         # Determine active system prompt
-        system_content = custom_prompt if custom_prompt else SYSTEM_PROMPTS.get(system_prompt_key, SYSTEM_PROMPTS["AI Tech Mentor"])
+        system_content = custom_prompt if custom_prompt else SYSTEM_PROMPTS.get(system_prompt_key, SYSTEM_PROMPTS.get("AI Tech Mentor", "You are a helpful assistant."))
         
         full_messages = [{"role": "system", "content": system_content}]
         for m in messages:
-            full_messages.append({"role": m.role, "content": m.content})
+            role = getattr(m, 'role', None) or (m.get('role') if isinstance(m, dict) else "user")
+            content = getattr(m, 'content', None) or (m.get('content') if isinstance(m, dict) else "")
+            full_messages.append({"role": role, "content": content})
 
         response = await self.client.chat.completions.create(
             model=settings.MODEL_NAME,
@@ -64,14 +66,12 @@ class LLMService:
                 content = response.choices[0].message.content.strip()
                 last_raw_response = content
 
-                # Clean markdown codeblocks if model hallucinated them
                 if content.startswith("```"):
                     content = content.replace("```json", "").replace("```", "").strip()
 
                 parsed_json = json.loads(content)
                 validated_data = InvoiceData.model_validate(parsed_json)
 
-                # Cost estimation for typical OpenRouter free/budget models ($0.15/1M in, $0.60/1M out approx)
                 est_cost = (prompt_tokens * 0.00000015) + (completion_tokens * 0.00000060)
 
                 return {
@@ -91,7 +91,6 @@ class LLMService:
                 last_error = str(e)
                 logger.warning(f"Extraction attempt {attempt} failed: {last_error}")
                 
-                # Feedback loop: append error context to message log for retry
                 messages.append({"role": "assistant", "content": last_raw_response})
                 retry_msg = RETRY_PROMPT_TEMPLATE.format(
                     error_details=last_error,
