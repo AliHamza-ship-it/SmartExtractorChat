@@ -1,15 +1,63 @@
 const API_BASE_URL = 'http://localhost:8000/api';
 
-// --- Chat History API Functions ---
+// --- Auth Helper ---
+const getHeaders = () => {
+    const token = localStorage.getItem('access_token');
+    return {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    };
+};
 
+// --- Auth Endpoints ---
+export async function registerAPI(data) {
+    const res = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail?.[0]?.msg || err.detail || 'Registration failed');
+    }
+    return res.json();
+}
+
+export async function verifyOtpAPI(email, otp) {
+    const res = await fetch(`${API_BASE_URL}/auth/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp })
+    });
+    if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Verification failed');
+    }
+    return res.json();
+}
+
+export async function loginAPI(email, password) {
+    const res = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+    });
+    if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Login failed');
+    }
+    return res.json();
+}
+
+// --- Chat History API Functions ---
 export async function fetchSessions() {
-    const res = await fetch(`${API_BASE_URL}/chat/sessions`);
+    const res = await fetch(`${API_BASE_URL}/chat/sessions`, { headers: getHeaders() });
     if (!res.ok) throw new Error('Failed to fetch chat sessions');
     return res.json();
 }
 
 export async function fetchSessionMessages(sessionId) {
-    const res = await fetch(`${API_BASE_URL}/chat/sessions/${sessionId}/messages`);
+    const res = await fetch(`${API_BASE_URL}/chat/sessions/${sessionId}/messages`, { headers: getHeaders() });
     if (!res.ok) throw new Error('Failed to fetch session messages');
     return res.json();
 }
@@ -17,7 +65,7 @@ export async function fetchSessionMessages(sessionId) {
 export async function createSession(systemPrompt, title = 'New Chat') {
     const res = await fetch(`${API_BASE_URL}/chat/sessions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({ system_prompt: systemPrompt, title })
     });
     if (!res.ok) throw new Error('Failed to create session');
@@ -27,7 +75,7 @@ export async function createSession(systemPrompt, title = 'New Chat') {
 export async function streamChatAPI(messages, systemPrompt, customPrompt, onChunk, sessionId, onSessionCreated) {
     const response = await fetch(`${API_BASE_URL}/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(), // Injects the Bearer token for SSE streaming request
         body: JSON.stringify({
             messages,
             system_prompt: systemPrompt,
@@ -58,12 +106,8 @@ export async function streamChatAPI(messages, systemPrompt, customPrompt, onChun
                 if (data === '[DONE]') return;
                 try {
                     const parsed = JSON.parse(data);
-                    if (parsed.session_id && onSessionCreated) {
-                        onSessionCreated(parsed.session_id);
-                    }
-                    if (parsed.content) {
-                        onChunk(parsed.content);
-                    }
+                    if (parsed.session_id && onSessionCreated) onSessionCreated(parsed.session_id);
+                    if (parsed.content) onChunk(parsed.content);
                 } catch (e) {
                     console.error("JSON parse error on stream chunk:", e);
                 }
@@ -72,12 +116,11 @@ export async function streamChatAPI(messages, systemPrompt, customPrompt, onChun
     }
 }
 
-// --- Invoice Extraction API Function (This was the missing piece!) ---
-
+// --- Invoice Extraction ---
 export async function extractInvoiceAPI(rawText) {
     const response = await fetch(`${API_BASE_URL}/extract`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({ raw_text: rawText })
     });
 

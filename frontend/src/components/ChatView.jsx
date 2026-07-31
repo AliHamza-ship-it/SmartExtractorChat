@@ -24,6 +24,9 @@ export default function ChatView() {
     const [showHistory, setShowHistory] = useState(true);
     const [isGenerating, setIsGenerating] = useState(false);
 
+    // State to store logged-in user email
+    const [userEmail, setUserEmail] = useState('');
+
     const messagesEndRef = useRef(null);
 
     // Auto-scroll to bottom on message update
@@ -31,9 +34,27 @@ export default function ChatView() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    // Fetch session history list on mount
+    // Fetch session history list and decode user token on mount
     useEffect(() => {
         loadSessions();
+
+        // Decode JWT token from localStorage to get the active user's email
+        try {
+            const token = localStorage.getItem('access_token');
+            if (token) {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(c =>
+                    '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+                ).join(''));
+
+                const payload = JSON.parse(jsonPayload);
+                setUserEmail(payload.email || 'Logged In User');
+            }
+        } catch (err) {
+            console.error('Failed to decode JWT token:', err);
+            setUserEmail('Logged In User');
+        }
     }, []);
 
     const loadSessions = async () => {
@@ -48,10 +69,9 @@ export default function ChatView() {
     const handleSelectSession = async (session) => {
         setCurrentSessionId(session.id);
         setSystemPrompt(session.system_prompt);
-        setIsGenerating(false); // Failsafe reset
+        setIsGenerating(false);
         try {
             const historyMessages = await fetchSessionMessages(session.id);
-            // Map Supabase history strictly to role & content to strip extra DB fields
             const formattedHistory = historyMessages.map(msg => ({
                 role: msg.role,
                 content: msg.content
@@ -103,7 +123,7 @@ export default function ChatView() {
                 (assignedSessionId) => {
                     if (!currentSessionId) {
                         setCurrentSessionId(assignedSessionId);
-                        loadSessions(); // Refresh sidebar list with new auto-titled session
+                        loadSessions();
                     }
                 }
             );
@@ -118,23 +138,30 @@ export default function ChatView() {
             });
         } finally {
             setIsGenerating(false);
-            loadSessions(); // Refresh session timestamps/titles
+            loadSessions();
         }
     };
 
     return (
         <div style={{
-            display: 'grid',
-            gridTemplateColumns: `${showHistory ? '260px' : '0px'} 1fr ${showConfig ? '280px' : '0px'}`,
-            gap: showHistory || showConfig ? '16px' : '0px',
+            display: 'flex', // Switched from grid to flex
+            gap: '16px',
             height: 'calc(100vh - 120px)',
             padding: '0 30px 20px',
-            transition: 'grid-template-columns 0.3s ease'
+            transition: 'all 0.3s ease'
         }}>
 
             {/* 1. HISTORY SIDEBAR */}
             {showHistory && (
-                <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', overflow: 'hidden' }}>
+                <div className="glass-panel" style={{
+                    width: '260px', // Fixed width for sidebar
+                    flexShrink: 0,  // Prevents sidebar from squishing
+                    padding: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    overflow: 'hidden'
+                }}>
                     <button className="glass-button" style={{ width: '100%', justifyContent: 'center', background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(6, 182, 212, 0.4))' }} onClick={handleNewChat}>
                         <Plus size={16} /> New Chat
                     </button>
@@ -168,12 +195,62 @@ export default function ChatView() {
                             </div>
                         ))}
                     </div>
+
+                    {/* ACTIVE USER PROFILE FOOTER */}
+                    <div style={{
+                        marginTop: 'auto',
+                        padding: '10px 12px',
+                        borderRadius: '12px',
+                        background: 'rgba(15, 23, 42, 0.6)',
+                        border: '1px solid var(--glass-border)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px'
+                    }}>
+                        <div style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 'bold',
+                            fontSize: '14px',
+                            color: '#fff',
+                            flexShrink: 0
+                        }}>
+                            {userEmail ? userEmail.charAt(0).toUpperCase() : 'U'}
+                        </div>
+
+                        <div style={{ overflow: 'hidden', flex: 1 }}>
+                            <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                Logged in as
+                            </div>
+                            <div style={{
+                                fontSize: '12px',
+                                color: '#fff',
+                                fontWeight: '500',
+                                textOverflow: 'ellipsis',
+                                overflow: 'hidden',
+                                whiteSpace: 'nowrap'
+                            }}>
+                                {userEmail || 'Active User'}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 
             {/* 2. MAIN CHAT AREA */}
-            <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-
+            <div className="glass-panel" style={{
+                flex: 1, // This allows the chat area to dynamically fill all remaining space
+                minWidth: 0, // Critical flexbox fix to prevent text overflow breaking the layout
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100%',
+                overflow: 'hidden'
+            }}>
                 {/* Toolbar Header */}
                 <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -252,7 +329,14 @@ export default function ChatView() {
 
             {/* 3. PROMPT CONFIG SIDEBAR */}
             {showConfig && (
-                <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="glass-panel" style={{
+                    width: '280px', // Fixed width for sidebar
+                    flexShrink: 0,
+                    padding: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '16px'
+                }}>
                     <h3 style={{ fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Settings size={16} /> Prompt Config
                     </h3>

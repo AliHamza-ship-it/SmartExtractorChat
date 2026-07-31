@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.routers import chat, extract
+from backend.routers import chat, extract, auth
 
 app = FastAPI(
     title="Smart Extractor & Chat Service",
-    description="Production-grade FastAPI service with SSE Streaming & Self-Correction Extraction",
-    version="1.0.0"
+    description="Production-grade FastAPI service with SSE Streaming, DB & Auth",
+    version="1.1.0"
 )
 
 app.add_middleware(
@@ -16,6 +16,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router) # Newly added
 app.include_router(chat.router)
 app.include_router(extract.router)
 

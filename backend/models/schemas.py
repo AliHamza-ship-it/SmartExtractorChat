@@ -1,9 +1,38 @@
-from pydantic import BaseModel, Field
+import re
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
 
-# Chat Schemas
+# --- Auth Schemas ---
+class UserRegister(BaseModel):
+    name: str
+    email: str
+    age: int = Field(gt=0)
+    country: str
+    password: str
+
+    @field_validator('password')
+    def validate_password(cls, v):
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters long.')
+        if not re.search(r'[A-Za-z]', v):
+            raise ValueError('Password must contain at least one letter.')
+        if not re.search(r'\d', v):
+            raise ValueError('Password must contain at least one number.')
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', v):
+            raise ValueError('Password must contain at least one special character.')
+        return v
+
+class OTPVerify(BaseModel):
+    email: str
+    otp: str
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+# --- Chat Schemas ---
 class ChatMessage(BaseModel):
-    role: str  # "user", "assistant", or "system"
+    role: str
     content: str
 
 class ChatRequest(BaseModel):
@@ -11,29 +40,29 @@ class ChatRequest(BaseModel):
     system_prompt: Optional[str] = "AI Tech Mentor"
     custom_system_prompt: Optional[str] = None
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
-    session_id: Optional[str] = None  # Added for Supabase linking
+    session_id: Optional[str] = None
 
 class CreateSessionRequest(BaseModel):
     system_prompt: str = "AI Tech Mentor"
     title: Optional[str] = "New Chat"
 
-# Invoice Extraction Schemas
+# --- Invoice Extraction Schemas ---
 class LineItem(BaseModel):
-    description: str = Field(description="Description of the item or service")
-    quantity: int = Field(default=1, description="Quantity of items")
-    unit_price: float = Field(default=0.0, description="Price per unit")
-    total_price: float = Field(default=0.0, description="Total cost for this item line")
+    description: str
+    quantity: int = 1
+    unit_price: float = 0.0
+    total_price: float = 0.0
 
 class InvoiceData(BaseModel):
-    invoice_number: Optional[str] = Field(default=None, description="Invoice or receipt reference number")
-    vendor_name: str = Field(description="Name of the company/vendor issuing invoice")
-    client_name: Optional[str] = Field(default=None, description="Client or customer name")
-    date: Optional[str] = Field(default=None, description="Date of invoice")
-    items: List[LineItem] = Field(default_factory=list, description="List of items billed")
-    subtotal: Optional[float] = Field(default=0.0, description="Subtotal amount before tax")
-    tax: Optional[float] = Field(default=0.0, description="Tax amount")
-    total_amount: float = Field(description="Final total monetary amount")
-    currency: str = Field(default="USD", description="Currency symbol or code")
+    invoice_number: Optional[str] = None
+    vendor_name: str
+    client_name: Optional[str] = None
+    date: Optional[str] = None
+    items: List[LineItem] = Field(default_factory=list)
+    subtotal: Optional[float] = 0.0
+    tax: Optional[float] = 0.0
+    total_amount: float
+    currency: str = "USD"
 
 class ExtractRequest(BaseModel):
     raw_text: str
