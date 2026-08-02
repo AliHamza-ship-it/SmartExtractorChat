@@ -19,8 +19,31 @@ class LLMService:
             }
         )
 
+    # NEW: Dedicated function for title generation
+    async def generate_chat_title(self, user_prompt: str) -> str:
+        messages = [
+            {
+                "role": "system", 
+                "content": "You are a title generator. Summarize the user's prompt into a concise, catchy title of exactly 3 to 4 words. Do not use quotes, punctuation, or conversational filler. Just the title."
+            },
+            {"role": "user", "content": user_prompt}
+        ]
+        try:
+            response = await self.client.chat.completions.create(
+                model=settings.MODEL_NAME,
+                messages=messages,
+                temperature=0.3, # Low temperature for consistent outputs
+                max_tokens=15
+            )
+            title = response.choices[0].message.content.strip()
+            # Clean up potential artifacts
+            title = title.replace('"', '').replace("'", "")
+            return title
+        except Exception as e:
+            logger.error(f"Failed to generate title: {e}")
+            return "New Chat Session"
+
     async def stream_chat(self, messages, system_prompt_key: str = "AI Tech Mentor", custom_prompt: str = None, temperature: float = 0.7):
-        # Determine active system prompt
         system_content = custom_prompt if custom_prompt else SYSTEM_PROMPTS.get(system_prompt_key, SYSTEM_PROMPTS.get("AI Tech Mentor", "You are a helpful assistant."))
         
         full_messages = [{"role": "system", "content": system_content}]

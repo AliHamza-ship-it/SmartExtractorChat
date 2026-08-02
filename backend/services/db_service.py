@@ -14,6 +14,13 @@ def create_chat_session(user_id: str, system_prompt: str, title: str = "New Chat
     }).execute()
     return response.data[0] if response.data else None
 
+# NEW: Function to update the title of an existing session
+def update_session_title(session_id: str, new_title: str):
+    response = supabase.table("chat_sessions").update({
+        "title": new_title
+    }).eq("id", session_id).execute()
+    return response.data
+
 def save_message(session_id: str, role: str, content: str):
     response = supabase.table("messages").insert({
         "session_id": session_id,

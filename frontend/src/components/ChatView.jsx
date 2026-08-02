@@ -24,21 +24,18 @@ export default function ChatView() {
     const [showHistory, setShowHistory] = useState(true);
     const [isGenerating, setIsGenerating] = useState(false);
 
-    // State to store logged-in user email
-    const [userEmail, setUserEmail] = useState('');
+    // NEW: Track the current active stream request
+    const [abortController, setAbortController] = useState(null);
 
+    const [userEmail, setUserEmail] = useState('');
     const messagesEndRef = useRef(null);
 
-    // Auto-scroll to bottom on message update
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    // Fetch session history list and decode user token on mount
     useEffect(() => {
         loadSessions();
-
-        // Decode JWT token from localStorage to get the active user's email
         try {
             const token = localStorage.getItem('access_token');
             if (token) {
@@ -67,6 +64,12 @@ export default function ChatView() {
     };
 
     const handleSelectSession = async (session) => {
+        // If switching while generating, abort the active stream!
+        if (isGenerating && abortController) {
+            abortController.abort();
+            setIsGenerating(false);
+        }
+
         setCurrentSessionId(session.id);
         setSystemPrompt(session.system_prompt);
         setIsGenerating(false);
@@ -86,6 +89,12 @@ export default function ChatView() {
     };
 
     const handleNewChat = () => {
+        // If clicking new chat while generating, abort the active stream!
+        if (isGenerating && abortController) {
+            abortController.abort();
+            setIsGenerating(false);
+        }
+
         setCurrentSessionId(null);
         setMessages([
             { role: 'assistant', content: 'New chat started. Ask me anything!' }
@@ -103,6 +112,10 @@ export default function ChatView() {
 
         const assistantIndex = newMessages.length;
         setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+
+        // Create a new controller for this specific request
+        const controller = new AbortController();
+        setAbortController(controller);
 
         try {
             await streamChatAPI(
@@ -125,9 +138,16 @@ export default function ChatView() {
                         setCurrentSessionId(assignedSessionId);
                         loadSessions();
                     }
-                }
+                },
+                controller.signal // Pass the signal to the API function
             );
         } catch (err) {
+            // Ignore the error if it was intentionally aborted by the user
+            if (err.name === 'AbortError') {
+                console.log("Stream safely aborted due to chat switch.");
+                return;
+            }
+
             setMessages(prev => {
                 const updated = [...prev];
                 updated[assistantIndex] = {
@@ -144,7 +164,7 @@ export default function ChatView() {
 
     return (
         <div style={{
-            display: 'flex', // Switched from grid to flex
+            display: 'flex',
             gap: '16px',
             height: 'calc(100vh - 120px)',
             padding: '0 30px 20px',
@@ -154,8 +174,8 @@ export default function ChatView() {
             {/* 1. HISTORY SIDEBAR */}
             {showHistory && (
                 <div className="glass-panel" style={{
-                    width: '260px', // Fixed width for sidebar
-                    flexShrink: 0,  // Prevents sidebar from squishing
+                    width: '260px',
+                    flexShrink: 0,
                     padding: '16px',
                     display: 'flex',
                     flexDirection: 'column',
@@ -244,14 +264,13 @@ export default function ChatView() {
 
             {/* 2. MAIN CHAT AREA */}
             <div className="glass-panel" style={{
-                flex: 1, // This allows the chat area to dynamically fill all remaining space
-                minWidth: 0, // Critical flexbox fix to prevent text overflow breaking the layout
+                flex: 1,
+                minWidth: 0,
                 display: 'flex',
                 flexDirection: 'column',
                 height: '100%',
                 overflow: 'hidden'
             }}>
-                {/* Toolbar Header */}
                 <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <button className="glass-button" style={{ padding: '6px' }} onClick={() => setShowHistory(!showHistory)} title="Toggle History">
@@ -266,7 +285,6 @@ export default function ChatView() {
                     </button>
                 </div>
 
-                {/* Message Container */}
                 <div style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     {messages.map((m, i) => (
                         <div key={i} style={{ display: 'flex', gap: '12px', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
@@ -304,7 +322,6 @@ export default function ChatView() {
                     <div ref={messagesEndRef} />
                 </div>
 
-                {/* Multi-line Input Bar */}
                 <div style={{ padding: '16px', borderTop: '1px solid var(--glass-border)', display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
                     <textarea
                         className="glass-textarea"
@@ -330,7 +347,7 @@ export default function ChatView() {
             {/* 3. PROMPT CONFIG SIDEBAR */}
             {showConfig && (
                 <div className="glass-panel" style={{
-                    width: '280px', // Fixed width for sidebar
+                    width: '280px',
                     flexShrink: 0,
                     padding: '16px',
                     display: 'flex',

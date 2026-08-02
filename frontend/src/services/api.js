@@ -72,10 +72,12 @@ export async function createSession(systemPrompt, title = 'New Chat') {
     return res.json();
 }
 
-export async function streamChatAPI(messages, systemPrompt, customPrompt, onChunk, sessionId, onSessionCreated) {
+// CRITICAL FIX: Added 'signal' parameter to handle stream aborting
+export async function streamChatAPI(messages, systemPrompt, customPrompt, onChunk, sessionId, onSessionCreated, signal) {
     const response = await fetch(`${API_BASE_URL}/chat`, {
         method: 'POST',
-        headers: getHeaders(), // Injects the Bearer token for SSE streaming request
+        headers: getHeaders(),
+        signal, // Attach the abort signal here
         body: JSON.stringify({
             messages,
             system_prompt: systemPrompt,
