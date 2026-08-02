@@ -1,10 +1,10 @@
 import json
 import logging
 from openai import AsyncOpenAI
-from config import settings
-from prompts.system_prompts import SYSTEM_PROMPTS
-from prompts.extraction_prompts import EXTRACTION_SYSTEM_PROMPT, RETRY_PROMPT_TEMPLATE
-from models.schemas import InvoiceData
+from backend.config import settings
+from backend.prompts.system_prompts import SYSTEM_PROMPTS
+from backend.prompts.extraction_prompts import EXTRACTION_SYSTEM_PROMPT, RETRY_PROMPT_TEMPLATE
+from backend.models.schemas import InvoiceData
 
 logger = logging.getLogger("uvicorn")
 

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import chat, extract, auth
+from backend.routers import chat, extract, auth
 
 app = FastAPI(
     title="Smart Extractor & Chat Service",

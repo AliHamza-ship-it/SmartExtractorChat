@@ -1,5 +1,5 @@
 from supabase import create_client, Client
-from config import settings
+from backend.config import settings
 
 if not settings.SUPABASE_URL or not settings.SUPABASE_KEY:
     raise ValueError("Missing SUPABASE_URL or SUPABASE_KEY in environment variables.")

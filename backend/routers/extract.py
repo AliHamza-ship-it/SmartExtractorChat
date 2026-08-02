@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from models.schemas import ExtractRequest, ExtractResponse
-from services.llm_service import llm_service
+from backend.models.schemas import ExtractRequest, ExtractResponse
+from backend.services.llm_service import llm_service
 
 router = APIRouter(prefix="/api/extract", tags=["extract"])
 
