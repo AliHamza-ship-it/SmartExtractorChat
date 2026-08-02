@@ -5,7 +5,7 @@ import sys
 # Ensure backend modules can be imported
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from backend.services.llm_service import llm_service
+from services.llm_service import llm_service
 
 TEST_SET = [
     {

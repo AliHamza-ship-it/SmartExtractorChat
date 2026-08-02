@@ -30,7 +30,7 @@ pip install -r requirements.txt
 Bash
 3. Run the Backend API
 Bash
-uvicorn backend.main:app --reload --port 8000
+uvicorn main:app --reload --port 8000
 Interactive API Docs: http://localhost:8000/docs
 
 4. Run the Frontend (React + Vite)
@@ -55,7 +55,7 @@ python scripts/eval.py
    python -m venv venv
    source venv/bin/activate
    pip install -r requirements.txt
-   uvicorn backend.main:app --reload --port 8000
+   uvicorn main:app --reload --port 8000
 2. **Frontend**:
 
 Bash

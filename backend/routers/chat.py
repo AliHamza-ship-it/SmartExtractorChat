@@ -1,9 +1,9 @@
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
-from backend.models.schemas import ChatRequest, CreateSessionRequest
-from backend.services.llm_service import llm_service
-from backend.services import db_service
-from backend.dependencies import get_current_user
+from models.schemas import ChatRequest, CreateSessionRequest
+from services.llm_service import llm_service
+from services import db_service
+from dependencies import get_current_user
 import json
 import logging
 import asyncio 

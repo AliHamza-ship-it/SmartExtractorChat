@@ -1,6 +1,6 @@
 from fastapi import Security, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from backend.services.db_service import supabase
+from services.db_service import supabase
 
 security = HTTPBearer()
 
