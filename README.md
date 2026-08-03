@@ -1,68 +1,51 @@
-# ⚡ Smart Extractor & Chat Service
+Smart AI Chat & Workspace
+Welcome to the Smart AI Chat & Workspace! This project is a modern, highly intelligent web application designed to give you a "ChatGPT-like" experience. It allows users to have real-time conversations with an AI, manage their chat history, and even extract complex data (like invoices) automatically.
 
-A full-stack, production-grade LLM application built with FastAPI, OpenRouter, and a Glassmorphism React frontend.
+We built this with a focus on a beautiful design, lightning-fast responses, and a completely seamless user experience.
 
-## ✨ Key Features
-- **Streaming Chat Endpoint (`/api/chat`)**: Server-Sent Events (SSE) streaming with configurable system prompts.
-- **Self-Correcting JSON Extractor (`/api/extract`)**: Converts unstructured text into Pydantic-validated JSON with automatic retry loops and feedback on failure.
-- **Token & Cost Tracking**: Calculates token usage and estimated API cost per request.
-- **Glassmorphism UI**: High-end translucent design with glow effects and clean tabbed layout.
-- **Prompt Eval Script**: Evaluates extraction accuracy across a 10-item test benchmark.
+🌟 What Can This App Do?
+This application is packed with features designed to make working with AI as smooth and helpful as possible:
 
----
+🔐 Secure User Accounts: Users can securely register, log in, and verify their identity using OTP (One-Time Passwords). Everyone gets their own private workspace.
 
-## 🚀 Quickstart Guide
+🎭 Custom AI Personas: You aren't just talking to a generic robot. You can choose from built-in personas like an AI Tech Mentor, Executive Assistant, Creative Writer, or a Strict Code Auditor to get the exact help you need.
 
-### 1. Setup Environment & Virtualenv
-```bash
-# Clone or create directory
-cd smart-extractor-chat
+⚡ Real-Time Typing (Streaming): Just like human messaging, the AI types out its answers in real-time. You don't have to wait 30 seconds staring at a loading screen to read the response.
 
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows use: venv\Scripts\activate
+📚 Persistent Chat History: Every conversation is safely saved to a database. You can log out, come back days later, and pick up right where you left off.
 
-# Install backend dependencies
-pip install -r requirements.txt
-2. Configure Environment Variables
-   insert your OpenRouter API Key:
+🧾 Smart Invoice Extractor: Beyond just chatting, the app has a specialized tool that can read messy, raw text from invoices and perfectly organize it into clean, structured data for business use.
 
-Bash
-3. Run the Backend API
-Bash
-uvicorn main:app --reload --port 8000
-Interactive API Docs: http://localhost:8000/docs
+✨ The "Magic" Features (What makes this special)
+We solved some of the most annoying problems found in standard AI chat apps to make this extremely robust:
 
-4. Run the Frontend (React + Vite)
-Open a new terminal window:
+1. Unbreakable Chat Switching 🛡️
+Have you ever asked an AI a long question, clicked away to look at an older chat, and the app crashed or the AI forgot to finish your answer? Not here.
+If you ask our AI a question and switch chats while it is still "typing", the app gracefully pauses the screen, but the AI keeps thinking in the background. It will finish writing the answer and safely file it into your database so it's ready for you when you go back to it.
 
-Bash
-cd frontend
-npm install
-npm run dev
-Access UI: http://localhost:3000
+2. Auto-Generated Smart Titles 🏷️
+When you start a new chat, you don't have to name it. The moment you send your first message, a lightweight background AI reads your question and instantly creates a catchy, 3-to-4 word title for that chat (e.g., "Fix Code Error" or "Plan Vacation Itinerary"). This keeps your sidebar perfectly organized without any extra effort on your part.
 
-5. Run the 10-Item Prompt Evaluation Benchmark
-Bash
-python scripts/eval.py
+🏗️ How It Works (Behind the Scenes)
+Even though it looks simple on the outside, there are three main pieces working together:
 
----
+The Frontend (The Face): Built with React, this is the beautiful "Glassmorphism" interface you see and click on. It handles the smooth animations, the sidebar, and formatting the AI's text so that code and lists look perfect.
 
-## 🏃 How to Run Everything
+The Backend (The Brain): Built with Python (FastAPI), this acts as the traffic controller. It talks to the AI models securely, handles user logins, and runs background tasks (like generating chat titles) so the main app never slows down.
 
-1. **Backend**:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   uvicorn main:app --reload --port 8000
-2. **Frontend**:
+The Database (The Memory): Powered by Supabase, this is a highly secure vault that remembers who you are, saves all your past chats, and organizes your custom AI instructions.
 
-Bash
-cd frontend
-npm install
-npm run dev
-3. **Evaluation Test Suite**:
+🚀 Getting Started
+(For Developers or System Admins)
 
-Bash
-python scripts/eval.py
+To run this project locally, your technical team will need to:
+
+Set up a Supabase project for the database.
+
+Provide an OpenRouter/OpenAI API Key to power the AI brain.
+
+Run the Python backend server.
+
+Run the React frontend application.
+
+Once connected, simply open your web browser, log in, and start chatting!
